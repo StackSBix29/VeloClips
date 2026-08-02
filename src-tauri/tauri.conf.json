@@ -1,7 +1,7 @@
 {
-  "productName": "veloclips",
+  "productName": "VeloClips",
   "version": "0.1.0",
-  "identifier": "com.veloclips.dev",
+  "identifier": "com.VeloClips.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",

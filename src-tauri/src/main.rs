@@ -348,6 +348,17 @@ fn main() {
     ensure_lua_script_installed();
 
     tauri::Builder::default()
+        // --- INICIO DEL MODO FRANCOTIRADOR ---
+        .on_window_event(|_window, event| match event {
+            tauri::WindowEvent::CloseRequested { .. } => {
+                // Ejecuta taskkill en Windows para asesinar al proceso zombie de DaVinci
+                let _ = std::process::Command::new("taskkill")
+                    .args(["/F", "/IM", "fuscript.exe", "/T"])
+                    .output();
+            }
+            _ => {}
+        })
+        // --- FIN DEL MODO FRANCOTIRADOR ---
         .invoke_handler(tauri::generate_handler![
             apply_layout_command, 
             get_all_streamers, 
