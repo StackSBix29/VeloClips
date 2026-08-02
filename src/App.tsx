@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { Sparkles, Settings, X, Search, Download, CheckCircle2, Tv, Layers, Crosshair, Flame, Scissors, ChevronLeft, Trash2, FileVideo, RefreshCw, Library, BookmarkPlus, Save, History } from 'lucide-react';
+import { Sparkles, Settings, X, Search, Download, CheckCircle2, Tv, Layers, Crosshair, Flame, Scissors, ChevronLeft, Trash2, FileVideo, RefreshCw, BookmarkPlus, Save, History } from 'lucide-react';
 
 const appWindow = getCurrentWindow();
 
