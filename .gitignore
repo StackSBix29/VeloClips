@@ -1,0 +1,39 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# --- REGLAS PARA VELOCLIPS ---
+
+# Entorno virtual de Python
+venv/
+__pycache__/
+
+# Archivos temporales de VeloClips y DaVinci
+VeloClips_Workspace/Exports/*.mp4
+VeloClips_Workspace/Exports/*.m4a
+VeloClips_Workspace/Exports/*.txt
+VeloClips_Workspace/Exports/*.lock
+C:/temp/
+C:/VeloClips_Exports/
+DEBUG_VISION.jpg

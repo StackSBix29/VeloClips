@@ -1,0 +1,30 @@
+{
+  "aquino": {
+    "platform": "Kick",
+    "url": "https://kick.com/aquino"
+  },
+  "lasalucinespodcast": {
+    "platform": "YouTube",
+    "url": "https://www.youtube.com/@lasalucinespodcast"
+  },
+  "cloudytako": {
+    "platform": "Kick",
+    "url": "https://kick.com/cloudytako"
+  },
+  "stacksbix29": {
+    "platform": "Twitch",
+    "url": "https://www.twitch.tv/stacksbix29"
+  },
+  "dianalexteban": {
+    "platform": "Twitch",
+    "url": "https://www.twitch.tv/dianalexteban"
+  },
+  "AQUISI_": {
+    "platform": "YouTube",
+    "url": "https://www.youtube.com/@AQUISI_"
+  },
+  "AQUISIclips": {
+    "platform": "YouTube",
+    "url": "https://www.youtube.com/@AQUISIclips"
+  }
+}
