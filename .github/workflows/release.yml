@@ -1,0 +1,45 @@
+name: 'Publicar VeloClips'
+
+# Esto le dice a GitHub que solo compile cuando subas un "Tag" de versión (ej. v0.1.1)
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        # Aquí le decimos que use una máquina con Windows para compilar tu .exe
+        platform: [windows-latest]
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Instalar dependencias (NPM)
+        run: npm install
+
+      - name: Compilar y crear el Release de Tauri
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: v__VERSION__
+          releaseName: 'VeloClips v__VERSION__'
+          releaseBody: 'Nueva actualización de VeloClips.'
+          releaseDraft: false
+          prerelease: false

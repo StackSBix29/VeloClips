@@ -10,16 +10,16 @@
   },
   "app": {
     "windows": [
-  {
-    "fullscreen": false,
-    "resizable": true,
-    "title": "VeloClips",
-    "width": 800,
-    "height": 600,
-    "decorations": false, 
-    "visible": true
-  }
-],
+      {
+        "fullscreen": false,
+        "resizable": true,
+        "title": "VeloClips",
+        "width": 800,
+        "height": 600,
+        "decorations": false, 
+        "visible": true
+      }
+    ],
     "security": {
       "assetProtocol": {
         "enable": true,
@@ -35,7 +35,7 @@
       "DaVinci_Integration/**/*",
       "venv/**/*",
       "Templates/**/*"
-      ],
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -43,5 +43,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/StackSBix29/VeloClips/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZGQTkyMEZCQ0E3QUJENEEKUldSS3ZYcksreUNwYjZ5T3FoUDJMVEt0ZUFJVnpkc2wvMTFPTzNBbU5UMWdJUGpHUS9tMGlYNnkK"
+    }
   }
 }

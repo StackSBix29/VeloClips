@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { open } from '@tauri-apps/plugin-shell'; // <-- Nueva importación para Tauri v2
+import { open } from '@tauri-apps/plugin-shell';
+import { check } from '@tauri-apps/plugin-updater';
+import { ask } from '@tauri-apps/plugin-dialog';
 import { Sparkles, Settings, X, Search, Download, CheckCircle2, Tv, Layers, Crosshair, Flame, Scissors, ChevronLeft, Trash2, FileVideo, RefreshCw, BookmarkPlus, Save, History } from 'lucide-react';
 
 const appWindow = getCurrentWindow();
@@ -103,7 +105,6 @@ export default function App() {
   // UI States
   const [showSettings, setShowSettings] = useState(false);
 
-  // NUEVO: Estado para el Toggle de DaVinci
   const [useDaVinci, setUseDaVinci] = useState(() => {
     const saved = localStorage.getItem('velo_use_davinci');
     return saved !== null ? saved === 'true' : true;
@@ -114,7 +115,6 @@ export default function App() {
     localStorage.setItem('velo_use_davinci', String(val));
   };
 
-  // Valores actualizados para que coincidan con la lectura del archivo .txt en Lua
   const defaultTemplates = [
     { name: "Video Original Puro (Sin Efectos)", value: "NINGUNO" },
     { name: "Fondo Inmersivo (Blur)", value: "Plantillas.drb" },
@@ -124,7 +124,7 @@ export default function App() {
   ];
   
   const [savedTemplates, setSavedTemplates] = useState<{name: string, value: string}[]>([]);
-  const [preset, setPreset] = useState(defaultTemplates[1].value); // Por defecto "Plantillas.drb"
+  const [preset, setPreset] = useState(defaultTemplates[1].value);
   const [newTemplateName, setNewTemplateName] = useState("");
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
 
@@ -138,6 +138,27 @@ export default function App() {
     if (saved) setSavedTemplates(JSON.parse(saved));
     loadProfiles();
     
+    // --- NUEVO: SISTEMA DE ACTUALIZACIONES AUTOMÁTICAS ---
+    const checkForUpdates = async () => {
+      try {
+        const update = await check();
+        if (update) {
+          const yes = await ask(
+            `¡Hay una nueva versión de VeloClips disponible (${update.version})!\n\n¿Quieres descargarla e instalarla ahora?`, 
+            { title: 'Actualización Disponible', kind: 'info', okLabel: 'Actualizar', cancelLabel: 'Más tarde' }
+          );
+          if (yes) {
+            await update.downloadAndInstall();
+          }
+        }
+      } catch (error) {
+        console.error("Error buscando actualizaciones:", error);
+      }
+    };
+
+    checkForUpdates();
+    // -----------------------------------------------------
+
     const checkDaVinci = async () => {
       try { setIsConnected(await invoke<boolean>('check_davinci_status')); } 
       catch (e) { setIsConnected(false); }
@@ -377,18 +398,16 @@ export default function App() {
       
       const allClips = result.clips; 
 
-      // === LÓGICA CONDICIONAL DE DAVINCI ===
       if (useDaVinci && isConnected) {
         setProgressPhase("Comunicando con DaVinci...");
         setProgress(90);
         
-        // Si el usuario apaga el toggle de Overlay en la UI, forzamos "NINGUNO"
         const templateValue = useOverlay ? preset : "NINGUNO";
         
         const res = await invoke<string>('apply_layout_command', {
           videoPaths: allClips, 
           insertKey: templateValue, 
-          hasCam: needsFaceScan, // NUEVO PARÁMETRO
+          hasCam: needsFaceScan, 
           camX: faces.length > 0 ? faces[0].x : 0.0, 
           camY: faces.length > 0 ? faces[0].y : 0.0, 
           camScale: faces.length > 0 ? faces[0].zoom : 1.0,
@@ -399,7 +418,6 @@ export default function App() {
         setStatusMsg(res);
         setTimeout(() => setIsAnalyzing(false), 800);
       } else {
-        // MODO SIN DAVINCI O DESCONECTADO (Solo exporta los videos)
         setProgressPhase("Abriendo carpeta...");
         setProgress(95); await invoke('open_export_folder'); setProgress(100);
         setStatusMsg(`✅ ${allClips.length} clips en crudo exportados exitosamente.`);
@@ -420,7 +438,7 @@ export default function App() {
     <style dangerouslySetInnerHTML={{ __html: customScrollbarStyle }} />
     <div className="fixed inset-0 bg-[#030305] text-white font-sans flex flex-col overflow-hidden border border-[#1a1a24]">
       
-      {/* BARRA SUPERIOR CUSTOM (Corregida para Tauri V2) */}
+      {/* BARRA SUPERIOR CUSTOM */}
       <div 
         className="drag-region flex-none h-10 bg-[#0a0a0f] border-b border-[#1a1a24] flex items-center justify-between px-3 select-none z-[9999] w-full"
         data-tauri-drag-region
@@ -448,7 +466,6 @@ export default function App() {
                 <Settings size={14} />
             </button>
 
-            {/* BOTÓN CERRAR ARREGLADO (Manejo asíncrono) */}
             <button 
               onPointerDown={(e) => e.stopPropagation()} 
               onClick={async () => { await appWindow.close(); }} 
@@ -475,7 +492,6 @@ export default function App() {
                         </select>
                     </div>
 
-                    {/* NUEVA OPCIÓN PARA DAVINCI RESOLVE */}
                     <div className="flex flex-col gap-1 mt-2">
                         <label className="text-[10px] font-bold text-[#b026ff] uppercase tracking-wider flex items-center gap-1"><Tv size={12}/> Editor Destino</label>
                         <div className="flex items-center justify-between mt-1 p-3 bg-[#120529] rounded-lg border border-[#1a1a24]">
@@ -490,7 +506,6 @@ export default function App() {
 
                     <div className="h-px w-full bg-[#1a1a24] my-2"></div>
 
-                    {/* ENLACES ARREGLADOS CON PLUGIN SHELL */}
                     <button onClick={() => open("https://github.com/StackSBix29/VeloClips")} className="flex items-center gap-3 p-3 rounded-lg bg-[#0c0c10] border border-[#1a1a24] hover:border-gray-500 transition-colors text-sm font-medium w-full text-left">
                         <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
                         Repositorio Oficial (GitHub)

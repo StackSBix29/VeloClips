@@ -404,12 +404,28 @@ fn open_export_folder() -> Result<String, String> {
     Ok("Carpeta abierta con éxito".into())
 }
 
+#[tauri::command]
+async fn graceful_restart(app: tauri::AppHandle) {
+    // Matamos los procesos de DaVinci/Python para no dejar zombies
+    let mut cmd = std::process::Command::new("taskkill");
+    #[cfg(target_os = "windows")]
+    cmd.creation_flags(CREATE_NO_WINDOW);
+    
+    // Fuscript es vital cerrarlo
+    let _ = cmd.args(["/F", "/IM", "fuscript.exe", "/T"]).output();
+
+    // Reiniciamos la aplicación de forma segura
+    app.restart();
+}
+
 fn main() {
     let _ = fs::create_dir_all(get_exports_dir());
     let _ = fs::create_dir_all(get_templates_dir());
     ensure_lua_script_installed();
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
         // --- INICIO DEL MODO FRANCOTIRADOR ---
         .on_window_event(|_window, event| match event {
@@ -436,7 +452,8 @@ fn main() {
             analyze_faces_command,
             download_and_cut_clips,
             get_local_library,
-            open_export_folder
+            open_export_folder,
+            graceful_restart
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
