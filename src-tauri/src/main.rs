@@ -6,6 +6,14 @@ use serde::{Serialize, Deserialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+// --- IMPORTACIONES PARA OCULTAR LA CONSOLA EN WINDOWS ---
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+// --------------------------------------------------------
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct VideoFeed {
     id: String, 
@@ -40,7 +48,6 @@ fn get_templates_dir() -> PathBuf {
 // --- AUTO-INYECCIÓN DEL SCRIPT LUA EN DAVINCI RESOLVE ---
 fn ensure_lua_script_installed() {
     if let Some(appdata) = dirs::config_dir() {
-        // AppData/Roaming/Blackmagic Design/DaVinci Resolve/Support/Fusion/Scripts/Utility
         let mut davinci_script_dir = appdata.clone();
         davinci_script_dir.push("Blackmagic Design");
         davinci_script_dir.push("DaVinci Resolve");
@@ -52,7 +59,6 @@ fn ensure_lua_script_installed() {
         if davinci_script_dir.exists() {
             let target_script = davinci_script_dir.join("VeloClips_Injector.lua");
             
-            // Buscamos el script en la carpeta de tu proyecto / instalador
             let current_dir = std::env::current_dir().unwrap_or_default();
             let source_script = if current_dir.ends_with("src-tauri") {
                 current_dir.parent().unwrap().join("DaVinci_Integration").join("VeloClips_Injector.lua")
@@ -61,7 +67,6 @@ fn ensure_lua_script_installed() {
             };
 
             if source_script.exists() {
-                // Sobrescribimos siempre para garantizar que DaVinci tenga la última versión
                 let _ = fs::copy(&source_script, &target_script);
             }
         }
@@ -104,12 +109,15 @@ async fn analyze_audio(video_path: String, max_clips: i32) -> Result<String, Str
     let python_bin = get_python_bin();
 
     let python_output = tauri::async_runtime::spawn_blocking(move || {
-        std::process::Command::new(python_bin)
-            .arg(script_path)
-            .arg(&safe_video_path)
-            .arg(max_clips_str)
-            .output()
-            .map_err(|e| e.to_string())
+        let mut cmd = std::process::Command::new(python_bin);
+        #[cfg(target_os = "windows")]
+        cmd.creation_flags(CREATE_NO_WINDOW);
+
+        cmd.arg(script_path)
+           .arg(&safe_video_path)
+           .arg(max_clips_str)
+           .output()
+           .map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| format!("Error de hilo: {}", e))??;
@@ -131,11 +139,14 @@ async fn analyze_chat_command(video_path: String) -> Result<String, String> {
     let python_bin = get_python_bin();
 
     let python_output = tauri::async_runtime::spawn_blocking(move || {
-        std::process::Command::new(python_bin)
-            .arg(script_path)
-            .arg(&safe_video_path)
-            .output()
-            .map_err(|e| e.to_string())
+        let mut cmd = std::process::Command::new(python_bin);
+        #[cfg(target_os = "windows")]
+        cmd.creation_flags(CREATE_NO_WINDOW);
+
+        cmd.arg(script_path)
+           .arg(&safe_video_path)
+           .output()
+           .map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| format!("Error de hilo: {}", e))??;
@@ -157,11 +168,14 @@ async fn analyze_faces_command(video_path: String) -> Result<String, String> {
     let python_bin = get_python_bin();
 
     let python_output = tauri::async_runtime::spawn_blocking(move || {
-        std::process::Command::new(python_bin)
-            .arg(script_path)
-            .arg(&safe_video_path)
-            .output()
-            .map_err(|e| e.to_string())
+        let mut cmd = std::process::Command::new(python_bin);
+        #[cfg(target_os = "windows")]
+        cmd.creation_flags(CREATE_NO_WINDOW);
+
+        cmd.arg(script_path)
+           .arg(&safe_video_path)
+           .output()
+           .map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| format!("Error de hilo: {}", e))??;
@@ -169,7 +183,7 @@ async fn analyze_faces_command(video_path: String) -> Result<String, String> {
     Ok(String::from_utf8_lossy(&python_output.stdout).to_string())
 }
 
-// --- APLICAR LAYOUT A DAVINCI (Escribir archivo dinámico) ---
+// --- APLICAR LAYOUT A DAVINCI ---
 #[tauri::command]
 async fn apply_layout_command(
     video_paths: Vec<String>,
@@ -194,7 +208,6 @@ async fn apply_layout_command(
     let formato = if insert_key.contains("Horizontal") { "Horizontal" } else { "Vertical" };
     
     for path in video_paths {
-        // FORMATO EXACTO: Ruta | Template | Formato | TieneCamara | FaceX | FaceY | Zoom
         let line = format!("{}|{}|{}|{}|{}|{}|{}", 
             path, 
             insert_key, 
@@ -250,7 +263,11 @@ fn get_recent_videos(name: String, platform: String) -> Result<Vec<VideoFeed>, S
         current_dir.join("ai_engine").join("video_scraper.py")
     };
 
-    let python_output = std::process::Command::new(get_python_bin())
+    let mut cmd = std::process::Command::new(get_python_bin());
+    #[cfg(target_os = "windows")]
+    cmd.creation_flags(CREATE_NO_WINDOW);
+
+    let python_output = cmd
         .arg(script_path)
         .arg(&url)
         .arg(&platform)
@@ -270,7 +287,11 @@ fn get_recent_videos(name: String, platform: String) -> Result<Vec<VideoFeed>, S
 #[tauri::command]
 async fn check_davinci_status() -> bool {
     let result = tauri::async_runtime::spawn_blocking(|| {
-        if let Ok(output) = std::process::Command::new("tasklist").output() {
+        let mut cmd = std::process::Command::new("tasklist");
+        #[cfg(target_os = "windows")]
+        cmd.creation_flags(CREATE_NO_WINDOW);
+
+        if let Ok(output) = cmd.output() {
             return String::from_utf8_lossy(&output.stdout).to_lowercase().contains("resolve.exe");
         }
         false
@@ -292,13 +313,16 @@ async fn download_and_cut_clips(video_url: String, highlights_json: String, dura
     let python_bin = get_python_bin();
 
     let python_output = tauri::async_runtime::spawn_blocking(move || {
-        std::process::Command::new(python_bin)
-            .arg(script_path)
-            .arg(&video_url)
-            .arg(&highlights_json)
-            .arg(duration_str)
-            .output()
-            .map_err(|e| e.to_string())
+        let mut cmd = std::process::Command::new(python_bin);
+        #[cfg(target_os = "windows")]
+        cmd.creation_flags(CREATE_NO_WINDOW);
+
+        cmd.arg(script_path)
+           .arg(&video_url)
+           .arg(&highlights_json)
+           .arg(duration_str)
+           .output()
+           .map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| format!("Error en el hilo de ejecución: {}", e))??;
@@ -334,10 +358,11 @@ fn open_export_folder() -> Result<String, String> {
     
     #[cfg(target_os = "windows")]
     {
-        std::process::Command::new("explorer")
-            .arg(path)
-            .spawn()
-            .map_err(|e| e.to_string())?;
+        let mut cmd = std::process::Command::new("explorer");
+        cmd.creation_flags(CREATE_NO_WINDOW);
+        cmd.arg(path)
+           .spawn()
+           .map_err(|e| e.to_string())?;
     }
     Ok("Carpeta abierta con éxito".into())
 }
@@ -351,10 +376,11 @@ fn main() {
         // --- INICIO DEL MODO FRANCOTIRADOR ---
         .on_window_event(|_window, event| match event {
             tauri::WindowEvent::CloseRequested { .. } => {
-                // Ejecuta taskkill en Windows para asesinar al proceso zombie de DaVinci
-                let _ = std::process::Command::new("taskkill")
-                    .args(["/F", "/IM", "fuscript.exe", "/T"])
-                    .output();
+                let mut cmd = std::process::Command::new("taskkill");
+                #[cfg(target_os = "windows")]
+                cmd.creation_flags(CREATE_NO_WINDOW);
+                
+                let _ = cmd.args(["/F", "/IM", "fuscript.exe", "/T"]).output();
             }
             _ => {}
         })
