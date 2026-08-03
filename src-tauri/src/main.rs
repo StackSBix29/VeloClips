@@ -1,8 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod db;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -16,12 +16,12 @@ const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct VideoFeed {
-    id: String, 
-    title: String, 
-    duration: String, 
-    date: String, 
-    views: String, 
-    platform: String, 
+    id: String,
+    title: String,
+    duration: String,
+    date: String,
+    views: String,
+    platform: String,
     img_url: String,
 }
 
@@ -58,12 +58,18 @@ fn ensure_lua_script_installed() {
 
         if davinci_script_dir.exists() {
             let target_script = davinci_script_dir.join("VeloClips_Injector.lua");
-            
+
             let current_dir = std::env::current_dir().unwrap_or_default();
             let source_script = if current_dir.ends_with("src-tauri") {
-                current_dir.parent().unwrap().join("DaVinci_Integration").join("VeloClips_Injector.lua")
+                current_dir
+                    .parent()
+                    .unwrap()
+                    .join("DaVinci_Integration")
+                    .join("VeloClips_Injector.lua")
             } else {
-                current_dir.join("DaVinci_Integration").join("VeloClips_Injector.lua")
+                current_dir
+                    .join("DaVinci_Integration")
+                    .join("VeloClips_Injector.lua")
             };
 
             if source_script.exists() {
@@ -77,7 +83,12 @@ fn ensure_lua_script_installed() {
 fn get_python_bin() -> PathBuf {
     let current_dir = std::env::current_dir().unwrap_or_default();
     if current_dir.ends_with("src-tauri") {
-        current_dir.parent().unwrap().join("venv").join("Scripts").join("python.exe")
+        current_dir
+            .parent()
+            .unwrap()
+            .join("venv")
+            .join("Scripts")
+            .join("python.exe")
     } else {
         current_dir.join("venv").join("Scripts").join("python.exe")
     }
@@ -87,7 +98,8 @@ fn get_python_bin() -> PathBuf {
 fn select_local_video() -> Result<String, String> {
     if let Some(path) = rfd::FileDialog::new()
         .add_filter("Videos", &["mp4", "mkv", "mov", "avi"])
-        .pick_file() {
+        .pick_file()
+    {
         Ok(path.display().to_string())
     } else {
         Err("Selección cancelada.".into())
@@ -98,9 +110,13 @@ fn select_local_video() -> Result<String, String> {
 async fn analyze_audio(video_path: String, max_clips: i32) -> Result<String, String> {
     let safe_video_path = video_path.replace("\\", "/");
     let current_dir = std::env::current_dir().unwrap_or_default();
-    
+
     let script_path = if current_dir.ends_with("src-tauri") {
-        current_dir.parent().unwrap().join("ai_engine").join("audio_analyzer.py")
+        current_dir
+            .parent()
+            .unwrap()
+            .join("ai_engine")
+            .join("audio_analyzer.py")
     } else {
         current_dir.join("ai_engine").join("audio_analyzer.py")
     };
@@ -114,10 +130,10 @@ async fn analyze_audio(video_path: String, max_clips: i32) -> Result<String, Str
         cmd.creation_flags(CREATE_NO_WINDOW);
 
         cmd.arg(script_path)
-           .arg(&safe_video_path)
-           .arg(max_clips_str)
-           .output()
-           .map_err(|e| e.to_string())
+            .arg(&safe_video_path)
+            .arg(max_clips_str)
+            .output()
+            .map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| format!("Error de hilo: {}", e))??;
@@ -129,9 +145,13 @@ async fn analyze_audio(video_path: String, max_clips: i32) -> Result<String, Str
 async fn analyze_chat_command(video_path: String) -> Result<String, String> {
     let safe_video_path = video_path.replace("\\", "/");
     let current_dir = std::env::current_dir().unwrap_or_default();
-    
+
     let script_path = if current_dir.ends_with("src-tauri") {
-        current_dir.parent().unwrap().join("ai_engine").join("chat_analyzer.py")
+        current_dir
+            .parent()
+            .unwrap()
+            .join("ai_engine")
+            .join("chat_analyzer.py")
     } else {
         current_dir.join("ai_engine").join("chat_analyzer.py")
     };
@@ -144,9 +164,9 @@ async fn analyze_chat_command(video_path: String) -> Result<String, String> {
         cmd.creation_flags(CREATE_NO_WINDOW);
 
         cmd.arg(script_path)
-           .arg(&safe_video_path)
-           .output()
-           .map_err(|e| e.to_string())
+            .arg(&safe_video_path)
+            .output()
+            .map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| format!("Error de hilo: {}", e))??;
@@ -158,9 +178,13 @@ async fn analyze_chat_command(video_path: String) -> Result<String, String> {
 async fn analyze_faces_command(video_path: String) -> Result<String, String> {
     let safe_video_path = video_path.replace("\\", "/");
     let current_dir = std::env::current_dir().unwrap_or_default();
-    
+
     let script_path = if current_dir.ends_with("src-tauri") {
-        current_dir.parent().unwrap().join("ai_engine").join("face_tracker.py")
+        current_dir
+            .parent()
+            .unwrap()
+            .join("ai_engine")
+            .join("face_tracker.py")
     } else {
         current_dir.join("ai_engine").join("face_tracker.py")
     };
@@ -173,9 +197,9 @@ async fn analyze_faces_command(video_path: String) -> Result<String, String> {
         cmd.creation_flags(CREATE_NO_WINDOW);
 
         cmd.arg(script_path)
-           .arg(&safe_video_path)
-           .output()
-           .map_err(|e| e.to_string())
+            .arg(&safe_video_path)
+            .output()
+            .map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| format!("Error de hilo: {}", e))??;
@@ -188,12 +212,12 @@ async fn analyze_faces_command(video_path: String) -> Result<String, String> {
 async fn apply_layout_command(
     video_paths: Vec<String>,
     insert_key: String,
-    has_cam: bool,       
-    cam_x: f32, 
-    cam_y: f32, 
-    cam_scale: f32,      
-    _game_x: f32, 
-    _game_y: f32, 
+    has_cam: bool,
+    cam_x: f32,
+    cam_y: f32,
+    cam_scale: f32,
+    _game_x: f32,
+    _game_y: f32,
     _game_scale: f32,
     _add_title: bool,
 ) -> Result<String, String> {
@@ -203,24 +227,23 @@ async fn apply_layout_command(
             .map_err(|e| format!("Error creando carpeta de exportación: {}", e))?;
     }
     let data_file = export_dir.join("VeloClips_Data.txt");
-         
+
     let mut lines = Vec::new();
-    let formato = if insert_key.contains("Horizontal") { "Horizontal" } else { "Vertical" };
-    
+    let formato = if insert_key.contains("Horizontal") {
+        "Horizontal"
+    } else {
+        "Vertical"
+    };
+
     for path in video_paths {
-        let line = format!("{}|{}|{}|{}|{}|{}|{}", 
-            path, 
-            insert_key, 
-            formato, 
-            has_cam, 
-            cam_x, 
-            cam_y, 
-            cam_scale
+        let line = format!(
+            "{}|{}|{}|{}|{}|{}|{}",
+            path, insert_key, formato, has_cam, cam_x, cam_y, cam_scale
         );
         lines.push(line);
     }
     let content = lines.join("\n");
-         
+
     match fs::write(&data_file, content) {
         Ok(_) => Ok("✅ ¡Instrucciones enviadas a DaVinci Resolve!".to_string()),
         Err(e) => Err(format!("Error escribiendo datos para DaVinci: {}", e)),
@@ -255,10 +278,14 @@ fn get_recent_videos(name: String, platform: String) -> Result<Vec<VideoFeed>, S
         Some(streamer) => streamer.url.clone(),
         None => return Err("No existe".into()),
     };
-    
+
     let current_dir = std::env::current_dir().unwrap_or_default();
     let script_path = if current_dir.ends_with("src-tauri") {
-        current_dir.parent().unwrap().join("ai_engine").join("video_scraper.py")
+        current_dir
+            .parent()
+            .unwrap()
+            .join("ai_engine")
+            .join("video_scraper.py")
     } else {
         current_dir.join("ai_engine").join("video_scraper.py")
     };
@@ -267,17 +294,13 @@ fn get_recent_videos(name: String, platform: String) -> Result<Vec<VideoFeed>, S
     #[cfg(target_os = "windows")]
     cmd.creation_flags(CREATE_NO_WINDOW);
 
-    let python_output = cmd
-        .arg(script_path)
-        .arg(&url)
-        .arg(&platform)
-        .output();
+    let python_output = cmd.arg(script_path).arg(&url).arg(&platform).output();
 
     if let Ok(output) = python_output {
         let output_str = String::from_utf8_lossy(&output.stdout);
         match serde_json::from_str::<Vec<VideoFeed>>(&output_str) {
             Ok(v) => Ok(v),
-            Err(_) => Ok(vec![])
+            Err(_) => Ok(vec![]),
         }
     } else {
         Err("Fallo al ejecutar Python".into())
@@ -292,19 +315,30 @@ async fn check_davinci_status() -> bool {
         cmd.creation_flags(CREATE_NO_WINDOW);
 
         if let Ok(output) = cmd.output() {
-            return String::from_utf8_lossy(&output.stdout).to_lowercase().contains("resolve.exe");
+            return String::from_utf8_lossy(&output.stdout)
+                .to_lowercase()
+                .contains("resolve.exe");
         }
         false
-    }).await;
+    })
+    .await;
 
     result.unwrap_or(false)
 }
 
 #[tauri::command]
-async fn download_and_cut_clips(video_url: String, highlights_json: String, duration: i32) -> Result<String, String> {
+async fn download_and_cut_clips(
+    video_url: String,
+    highlights_json: String,
+    duration: i32,
+) -> Result<String, String> {
     let current_dir = std::env::current_dir().unwrap_or_default();
     let script_path = if current_dir.ends_with("src-tauri") {
-        current_dir.parent().unwrap().join("ai_engine").join("clip_downloader.py")
+        current_dir
+            .parent()
+            .unwrap()
+            .join("ai_engine")
+            .join("clip_downloader.py")
     } else {
         current_dir.join("ai_engine").join("clip_downloader.py")
     };
@@ -318,11 +352,11 @@ async fn download_and_cut_clips(video_url: String, highlights_json: String, dura
         cmd.creation_flags(CREATE_NO_WINDOW);
 
         cmd.arg(script_path)
-           .arg(&video_url)
-           .arg(&highlights_json)
-           .arg(duration_str)
-           .output()
-           .map_err(|e| e.to_string())
+            .arg(&video_url)
+            .arg(&highlights_json)
+            .arg(duration_str)
+            .output()
+            .map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| format!("Error en el hilo de ejecución: {}", e))??;
@@ -334,14 +368,19 @@ async fn download_and_cut_clips(video_url: String, highlights_json: String, dura
 async fn get_local_library() -> Result<Vec<String>, String> {
     let mut files = Vec::new();
     let path = get_exports_dir();
-    
+
     if let Ok(entries) = std::fs::read_dir(&path) {
         for entry in entries.flatten() {
             if let Ok(file_type) = entry.file_type() {
                 if file_type.is_file() {
                     if let Ok(file_name) = entry.file_name().into_string() {
                         if file_name.ends_with(".mp4") || file_name.ends_with(".mkv") {
-                            files.push(path.join(&file_name).display().to_string().replace("\\", "/"));
+                            files.push(
+                                path.join(&file_name)
+                                    .display()
+                                    .to_string()
+                                    .replace("\\", "/"),
+                            );
                         }
                     }
                 }
@@ -355,14 +394,12 @@ async fn get_local_library() -> Result<Vec<String>, String> {
 fn open_export_folder() -> Result<String, String> {
     let path = get_exports_dir();
     let _ = std::fs::create_dir_all(&path);
-    
+
     #[cfg(target_os = "windows")]
     {
         let mut cmd = std::process::Command::new("explorer");
         cmd.creation_flags(CREATE_NO_WINDOW);
-        cmd.arg(path)
-           .spawn()
-           .map_err(|e| e.to_string())?;
+        cmd.arg(path).spawn().map_err(|e| e.to_string())?;
     }
     Ok("Carpeta abierta con éxito".into())
 }
@@ -373,31 +410,32 @@ fn main() {
     ensure_lua_script_installed();
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
         // --- INICIO DEL MODO FRANCOTIRADOR ---
         .on_window_event(|_window, event| match event {
             tauri::WindowEvent::CloseRequested { .. } => {
                 let mut cmd = std::process::Command::new("taskkill");
                 #[cfg(target_os = "windows")]
                 cmd.creation_flags(CREATE_NO_WINDOW);
-                
+
                 let _ = cmd.args(["/F", "/IM", "fuscript.exe", "/T"]).output();
             }
             _ => {}
         })
         // --- FIN DEL MODO FRANCOTIRADOR ---
         .invoke_handler(tauri::generate_handler![
-            apply_layout_command, 
-            get_all_streamers, 
-            add_streamer, 
-            delete_streamer, 
-            get_recent_videos, 
-            check_davinci_status, 
-            select_local_video, 
-            analyze_audio, 
-            analyze_chat_command, 
+            apply_layout_command,
+            get_all_streamers,
+            add_streamer,
+            delete_streamer,
+            get_recent_videos,
+            check_davinci_status,
+            select_local_video,
+            analyze_audio,
+            analyze_chat_command,
             analyze_faces_command,
-            download_and_cut_clips, 
-            get_local_library, 
+            download_and_cut_clips,
+            get_local_library,
             open_export_folder
         ])
         .run(tauri::generate_context!())

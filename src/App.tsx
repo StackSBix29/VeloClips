@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { open } from '@tauri-apps/plugin-shell'; // <-- Nueva importación para Tauri v2
 import { Sparkles, Settings, X, Search, Download, CheckCircle2, Tv, Layers, Crosshair, Flame, Scissors, ChevronLeft, Trash2, FileVideo, RefreshCw, BookmarkPlus, Save, History } from 'lucide-react';
 
 const appWindow = getCurrentWindow();
@@ -447,9 +448,10 @@ export default function App() {
                 <Settings size={14} />
             </button>
 
+            {/* BOTÓN CERRAR ARREGLADO (Manejo asíncrono) */}
             <button 
               onPointerDown={(e) => e.stopPropagation()} 
-              onClick={() => appWindow.close()} 
+              onClick={async () => { await appWindow.close(); }} 
               className="text-gray-400 hover:text-red-500 transition-colors cursor-pointer p-1"
             >
                 <X size={16} />
@@ -488,14 +490,15 @@ export default function App() {
 
                     <div className="h-px w-full bg-[#1a1a24] my-2"></div>
 
-                    <a href="https://github.com/StackSBix29/VeloClips" target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 rounded-lg bg-[#0c0c10] border border-[#1a1a24] hover:border-gray-500 transition-colors text-sm font-medium">
+                    {/* ENLACES ARREGLADOS CON PLUGIN SHELL */}
+                    <button onClick={() => open("https://github.com/StackSBix29/VeloClips")} className="flex items-center gap-3 p-3 rounded-lg bg-[#0c0c10] border border-[#1a1a24] hover:border-gray-500 transition-colors text-sm font-medium w-full text-left">
                         <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
                         Repositorio Oficial (GitHub)
-                    </a>
+                    </button>
                     
-                    <a href="https://ko-fi.com/stacks_bix29" target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 rounded-lg bg-[#1a0933] border border-[#b026ff]/30 hover:border-[#b026ff] transition-colors text-sm font-medium text-[#e0b0ff]">
+                    <button onClick={() => open("https://ko-fi.com/stacks_bix29")} className="flex items-center gap-3 p-3 rounded-lg bg-[#1a0933] border border-[#b026ff]/30 hover:border-[#b026ff] transition-colors text-sm font-medium text-[#e0b0ff] w-full text-left">
                         <Flame size={18} /> Apoyar el Proyecto (Donaciones)
-                    </a>
+                    </button>
                 </div>
             </div>
         </div>
