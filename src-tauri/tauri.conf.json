@@ -31,9 +31,10 @@
     "active": true,
     "targets": "all",
     "resources": [
-      "../ai_engine/**/*",
-      "../DaVinci_Integration/**/*",
-      "../venv/**/*"
+      "ai_engine/**/*",
+      "DaVinci_Integration/**/*",
+      "venv/**/*",
+      "Templates/**/*"
       ],
     "icon": [
       "icons/32x32.png",
