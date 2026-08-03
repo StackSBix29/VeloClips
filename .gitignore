@@ -36,4 +36,15 @@ VeloClips_Workspace/Exports/*.txt
 VeloClips_Workspace/Exports/*.lock
 C:/temp/
 C:/VeloClips_Exports/
+
+# Ignorar dependencias de Node
+node_modules/
+
+# Ignorar la carpeta de compilación de Rust/Tauri
+src-tauri/target/
+
+# Ignorar el entorno virtual de Python
+src-tauri/venv/
+venv/
+
 DEBUG_VISION.jpg
