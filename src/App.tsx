@@ -138,7 +138,6 @@ export default function App() {
     if (saved) setSavedTemplates(JSON.parse(saved));
     loadProfiles();
     
-    // --- NUEVO: SISTEMA DE ACTUALIZACIONES AUTOMÁTICAS ---
     const checkForUpdates = async () => {
       try {
         const update = await check();
@@ -149,6 +148,7 @@ export default function App() {
           );
           if (yes) {
             await update.downloadAndInstall();
+            await invoke('graceful_restart');
           }
         }
       } catch (error) {
@@ -157,7 +157,6 @@ export default function App() {
     };
 
     checkForUpdates();
-    // -----------------------------------------------------
 
     const checkDaVinci = async () => {
       try { setIsConnected(await invoke<boolean>('check_davinci_status')); } 
