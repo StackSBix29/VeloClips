@@ -129,7 +129,7 @@ async fn analyze_audio(video_path: String, max_clips: i32) -> Result<String, Str
     let max_clips_str = max_clips.to_string();
     
     tauri::async_runtime::spawn_blocking(move || {
-        run_local_exe("audio_analyzer-x86_64-pc-windows-msvc.exe", vec![&safe_video_path, &max_clips_str])
+        run_local_exe("audio_analyzer.exe", vec![&safe_video_path, &max_clips_str])
     })
     .await
     .unwrap_or_else(|_| Err("Error interno del hilo".into()))
@@ -140,7 +140,7 @@ async fn analyze_chat_command(video_path: String) -> Result<String, String> {
     let safe_video_path = video_path.replace("\\", "/");
     
     tauri::async_runtime::spawn_blocking(move || {
-        run_local_exe("chat_analyzer-x86_64-pc-windows-msvc.exe", vec![&safe_video_path])
+        run_local_exe("chat_analyzer.exe", vec![&safe_video_path])
     })
     .await
     .unwrap_or_else(|_| Err("Error interno del hilo".into()))
@@ -151,7 +151,7 @@ async fn analyze_faces_command(video_path: String) -> Result<String, String> {
     let safe_video_path = video_path.replace("\\", "/");
     
     tauri::async_runtime::spawn_blocking(move || {
-        run_local_exe("face_tracker-x86_64-pc-windows-msvc.exe", vec![&safe_video_path])
+        run_local_exe("face_tracker.exe", vec![&safe_video_path])
     })
     .await
     .unwrap_or_else(|_| Err("Error interno del hilo".into()))
@@ -166,7 +166,7 @@ async fn get_recent_videos(name: String, platform: String) -> Result<Vec<VideoFe
     };
 
     let output_str = tauri::async_runtime::spawn_blocking(move || {
-        run_local_exe("video_scraper-x86_64-pc-windows-msvc.exe", vec![&url, &platform])
+        run_local_exe("video_scraper.exe", vec![&url, &platform])
     })
     .await
     .unwrap_or_else(|_| Err("Error interno del hilo".into()))?;
@@ -182,15 +182,12 @@ async fn download_and_cut_clips(video_url: String, highlights_json: String, dura
     let duration_str = duration.to_string();
     
     tauri::async_runtime::spawn_blocking(move || {
-        run_local_exe("clip_downloader-x86_64-pc-windows-msvc.exe", vec![&video_url, &highlights_json, &duration_str])
+        run_local_exe("clip_downloader.exe", vec![&video_url, &highlights_json, &duration_str])
     })
     .await
     .unwrap_or_else(|_| Err("Error interno del hilo".into()))
 }
 
-// =========================================================================
-
-// --- APLICAR LAYOUT A DAVINCI ---
 #[tauri::command]
 async fn apply_layout_command(
     video_paths: Vec<String>,
