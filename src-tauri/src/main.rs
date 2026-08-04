@@ -173,7 +173,7 @@ async fn get_recent_videos(name: String, platform: String) -> Result<Vec<VideoFe
 
     match serde_json::from_str::<Vec<VideoFeed>>(&output_str) {
         Ok(v) => Ok(v),
-        Err(_) => Ok(vec![]), // Si la IA devuelve algo que no es JSON válido o hubo error.
+        Err(_) => Ok(vec![]), 
     }
 }
 
