@@ -9,6 +9,16 @@
     "core:default",
     "core:window:allow-close",
     "shell:allow-open",
-    "dialog:default"
+    "dialog:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        { "name": "bin/audio_analyzer", "sidecar": true },
+        { "name": "bin/chat_analyzer", "sidecar": true },
+        { "name": "bin/clip_downloader", "sidecar": true },
+        { "name": "bin/face_tracker", "sidecar": true },
+        { "name": "bin/video_scraper", "sidecar": true }
+      ]
+    }
   ]
 }
