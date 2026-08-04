@@ -5,8 +5,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-// --- NUEVA IMPORTACIÓN PARA SIDECARS ---
-use tauri_plugin_shell::ShellExt;
 
 // --- IMPORTACIONES PARA OCULTAR LA CONSOLA EN WINDOWS ---
 #[cfg(target_os = "windows")]
@@ -93,73 +91,76 @@ fn select_local_video() -> Result<String, String> {
     }
 }
 
-// =========================================================================
-//  NUEVA IMPLEMENTACIÓN CON SIDECARS (REEMPLAZA EL USO DIRECTO DE PYTHON)
-// =========================================================================
+fn run_local_exe(exe_name: &str, args: Vec<&str>) -> Result<String, String> {
+    let mut exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
+    exe_path.pop(); // Salimos de veloclips.exe
+    exe_path.push("bin"); // <-- AÑADIMOS ESTA LÍNEA PARA ENTRAR A LA CARPETA
+    exe_path.push(exe_name); // Apuntamos al .exe de la IA (ej. audio_analyzer.exe)
+
+    // Validamos que el archivo realmente esté ahí
+    if !exe_path.exists() {
+        return Err(format!("Falta el archivo: {}", exe_path.display()));
+    }
+
+    let mut cmd = std::process::Command::new(exe_path);
+    #[cfg(target_os = "windows")]
+    cmd.creation_flags(CREATE_NO_WINDOW);
+
+    let output = cmd.args(args)
+        .output()
+        .map_err(|e| format!("Error ejecutando {}: {}", exe_name, e))?;
+
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}
 
 #[tauri::command]
-async fn analyze_audio(app: tauri::AppHandle, video_path: String, max_clips: i32) -> Result<String, String> {
+async fn analyze_audio(video_path: String, max_clips: i32) -> Result<String, String> {
     let safe_video_path = video_path.replace("\\", "/");
     let max_clips_str = max_clips.to_string();
-
-    let sidecar_command = app.shell().sidecar("bin/audio_analyzer")
-        .map_err(|e| format!("Error cargando el sidecar audio_analyzer: {}", e))?;
     
-    let output = sidecar_command.args([&safe_video_path, &max_clips_str])
-        .output()
-        .await
-        .map_err(|e| format!("Error ejecutando sidecar: {}", e))?;
-
-    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+    tauri::async_runtime::spawn_blocking(move || {
+        run_local_exe("audio_analyzer.exe", vec![&safe_video_path, &max_clips_str])
+    })
+    .await
+    .unwrap_or_else(|_| Err("Error interno del hilo".into()))
 }
 
 #[tauri::command]
-async fn analyze_chat_command(app: tauri::AppHandle, video_path: String) -> Result<String, String> {
+async fn analyze_chat_command(video_path: String) -> Result<String, String> {
     let safe_video_path = video_path.replace("\\", "/");
-
-    let sidecar_command = app.shell().sidecar("bin/chat_analyzer")
-        .map_err(|e| format!("Error cargando el sidecar chat_analyzer: {}", e))?;
     
-    let output = sidecar_command.args([&safe_video_path])
-        .output()
-        .await
-        .map_err(|e| format!("Error ejecutando sidecar: {}", e))?;
-
-    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+    tauri::async_runtime::spawn_blocking(move || {
+        run_local_exe("chat_analyzer.exe", vec![&safe_video_path])
+    })
+    .await
+    .unwrap_or_else(|_| Err("Error interno del hilo".into()))
 }
 
 #[tauri::command]
-async fn analyze_faces_command(app: tauri::AppHandle, video_path: String) -> Result<String, String> {
+async fn analyze_faces_command(video_path: String) -> Result<String, String> {
     let safe_video_path = video_path.replace("\\", "/");
-
-    let sidecar_command = app.shell().sidecar("bin/face_tracker")
-        .map_err(|e| format!("Error cargando el sidecar face_tracker: {}", e))?;
     
-    let output = sidecar_command.args([&safe_video_path])
-        .output()
-        .await
-        .map_err(|e| format!("Error ejecutando sidecar: {}", e))?;
-
-    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+    tauri::async_runtime::spawn_blocking(move || {
+        run_local_exe("face_tracker.exe", vec![&safe_video_path])
+    })
+    .await
+    .unwrap_or_else(|_| Err("Error interno del hilo".into()))
 }
 
 #[tauri::command]
-async fn get_recent_videos(app: tauri::AppHandle, name: String, platform: String) -> Result<Vec<VideoFeed>, String> {
+async fn get_recent_videos(name: String, platform: String) -> Result<Vec<VideoFeed>, String> {
     let streamers = db::load_streamers();
     let url = match streamers.get(&name) {
         Some(streamer) => streamer.url.clone(),
-        None => return Err("No existe".into()),
+        None => return Err("No existe el perfil".into()),
     };
 
-    let sidecar_command = app.shell().sidecar("bin/video_scraper")
-        .map_err(|e| format!("Error cargando el sidecar video_scraper: {}", e))?;
-    
-    let output = sidecar_command.args([&url, &platform])
-        .output()
-        .await
-        .map_err(|e| format!("Error ejecutando sidecar: {}", e))?;
+    let output_str = tauri::async_runtime::spawn_blocking(move || {
+        run_local_exe("video_scraper.exe", vec![&url, &platform])
+    })
+    .await
+    .unwrap_or_else(|_| Err("Error interno del hilo".into()))?;
 
-    let output_str = String::from_utf8_lossy(&output.stdout);
     match serde_json::from_str::<Vec<VideoFeed>>(&output_str) {
         Ok(v) => Ok(v),
         Err(_) => Ok(vec![]), // Si la IA devuelve algo que no es JSON válido o hubo error.
@@ -167,23 +168,14 @@ async fn get_recent_videos(app: tauri::AppHandle, name: String, platform: String
 }
 
 #[tauri::command]
-async fn download_and_cut_clips(
-    app: tauri::AppHandle,
-    video_url: String,
-    highlights_json: String,
-    duration: i32,
-) -> Result<String, String> {
+async fn download_and_cut_clips(video_url: String, highlights_json: String, duration: i32) -> Result<String, String> {
     let duration_str = duration.to_string();
     
-    let sidecar_command = app.shell().sidecar("bin/clip_downloader")
-        .map_err(|e| format!("Error cargando el sidecar clip_downloader: {}", e))?;
-    
-    let output = sidecar_command.args([&video_url, &highlights_json, &duration_str])
-        .output()
-        .await
-        .map_err(|e| format!("Error ejecutando sidecar: {}", e))?;
-
-    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+    tauri::async_runtime::spawn_blocking(move || {
+        run_local_exe("clip_downloader.exe", vec![&video_url, &highlights_json, &duration_str])
+    })
+    .await
+    .unwrap_or_else(|_| Err("Error interno del hilo".into()))
 }
 
 // =========================================================================
@@ -330,7 +322,7 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_shell::init()) // Esto se mantiene para que funcione la apertura de enlaces web desde React
         .on_window_event(|_window, event| match event {
             tauri::WindowEvent::CloseRequested { .. } => {
                 let mut cmd = std::process::Command::new("taskkill");

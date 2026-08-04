@@ -275,14 +275,17 @@ export default function App() {
           setStatusMsg(`¡Análisis Completado! ${combinedData.length} clips detectados.`);
           setIsAnalyzing(false);
       }, 400);
-    } catch (e: any) { setIsAnalyzing(false); }
+    } catch (e: any) { 
+      setIsAnalyzing(false); 
+      setStatusMsg(`❌ Error en IA: ${e}`); // <-- El error ahora será visible
+    }
   };
 
   const loadProfiles = async () => { try { setStreamers(await invoke<any>('get_all_streamers')); } catch (e) {} };
   const fetchVideos = async (name: string, platform: string) => {
     setIsLoadingFeed(true); setVideos([]);
     try { setVideos(await invoke<any[]>('get_recent_videos', { name, platform })); setSelectedVideo(null); } 
-    catch (e) {} finally { setIsLoadingFeed(false); }
+    catch (e) { setStatusMsg(`❌ Error cargando videos: ${e}`); } finally { setIsLoadingFeed(false); }
   };
 
   // --- CARGAR HISTORIAL DE PROYECTOS ---
@@ -320,7 +323,9 @@ export default function App() {
     try {
       const path = await invoke<string>('select_local_video');
       if (path) { setSelectedVideo(null); setLocalVideoPath(path); setActiveProfile("Archivo Local"); setShowLibrary(false); }
-    } catch (e: any) {}
+    } catch (e: any) {
+        setStatusMsg(`❌ Error importando video: ${e}`);
+    }
   };
 
   const handleManualMark = () => {
@@ -343,7 +348,9 @@ export default function App() {
       setStatusMsg("Vinculando...");
       setStatusMsg(await invoke<string>('add_streamer', { name, platform, url: newUrl }));
       setNewUrl(""); await loadProfiles(); setActiveProfile(name);
-    } catch (error: any) {}
+    } catch (error: any) {
+        setStatusMsg(`❌ Error vinculando canal: ${error}`);
+    }
   };
 
   const handleDeleteChannel = async (name: string, e: React.MouseEvent) => {
@@ -368,7 +375,11 @@ export default function App() {
         else { setFaces(parsed); setStatusMsg(`✅ IA Facial Lista.`); }
         setIsAnalyzing(false);
       }, 400);
-    } catch (e: any) { setProgress(100); setStatusMsg(`❌ Error IA.`); setIsAnalyzing(false); }
+    } catch (e: any) { 
+        setProgress(100); 
+        setStatusMsg(`❌ Error IA: ${e}`); // <-- El error ahora será visible
+        setIsAnalyzing(false); 
+    }
   };
 
   const handleApplyToDaVinci = async () => {
@@ -422,7 +433,10 @@ export default function App() {
         setStatusMsg(`✅ ${allClips.length} clips en crudo exportados exitosamente.`);
         setTimeout(() => setIsAnalyzing(false), 800);
       }
-    } catch (e: any) { setStatusMsg(`Error: ${e}`); setIsAnalyzing(false); }
+    } catch (e: any) { 
+        setStatusMsg(`❌ Error: ${e}`); 
+        setIsAnalyzing(false); 
+    }
   };
 
   const activeVideoData = videos.find(v => v.id === selectedVideo) || { 
