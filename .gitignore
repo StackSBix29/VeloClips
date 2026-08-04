@@ -47,4 +47,5 @@ src-tauri/target/
 src-tauri/venv/
 venv/
 
-DEBUG_VISION.jpg
+src-tauri/ai_engine/build/
+*.pkg

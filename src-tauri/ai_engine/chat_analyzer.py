@@ -1,12 +1,19 @@
 import sys
 import json
-import subprocess
 import os
 import re
+import yt_dlp
+
+# --- CLASE PARA SILENCIAR yt-dlp ---
+class MuteLogger(object):
+    def debug(self, msg): pass
+    def warning(self, msg): pass
+    def error(self, msg): pass
+# -----------------------------------
 
 def analyze_chat(video_url):
     try:
-        # Si es un archivo local, el chat no aplica
+        # Si es un archivo local, el chat no aplica[cite: 4]
         if not video_url.startswith("http"):
             return []
 
@@ -14,8 +21,20 @@ def analyze_chat(video_url):
         os.makedirs(temp_dir, exist_ok=True)
         temp_sub = f"{temp_dir}/chat_temp"
         
-        command = ['yt-dlp', '--write-subs', '--write-auto-subs', '--sub-format', 'vtt', '--skip-download', '-o', temp_sub, video_url]
-        subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # Configuración nativa de yt_dlp para descargar subtítulos silenciosamente[cite: 4]
+        ydl_opts = {
+            'writesubtitles': True,
+            'writeautomaticsub': True,
+            'subtitlesformat': 'vtt',
+            'skip_download': True,
+            'outtmpl': temp_sub,
+            'quiet': True,
+            'no_warnings': True,
+            'logger': MuteLogger() # <-- ¡AQUÍ ESTÁ EL SILENCIADOR!
+        }
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([video_url])
         
         sub_file = None
         for file in os.listdir(temp_dir):
@@ -36,7 +55,7 @@ def analyze_chat(video_url):
                 
         if not timestamps: return []
 
-        # Agrupamos mensajes cada 10 segundos
+        # Agrupamos mensajes cada 10 segundos[cite: 4]
         chat_density = {}
         for t in timestamps:
             window = t // 10

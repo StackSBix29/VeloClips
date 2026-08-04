@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
+import { getVersion } from '@tauri-apps/api/app';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { open } from '@tauri-apps/plugin-shell';
-import { check } from '@tauri-apps/plugin-updater';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { Sparkles, Settings, X, Search, Download, CheckCircle2, Tv, Layers, Crosshair, Flame, Scissors, ChevronLeft, Trash2, FileVideo, RefreshCw, BookmarkPlus, Save, History } from 'lucide-react';
 
@@ -138,17 +138,24 @@ export default function App() {
     if (saved) setSavedTemplates(JSON.parse(saved));
     loadProfiles();
     
+    // --- NUEVO SISTEMA DE ACTUALIZACIONES VÍA GITHUB ---
     const checkForUpdates = async () => {
       try {
-        const update = await check();
-        if (update) {
+        const versionActual = await getVersion();
+        
+        const respuesta = await fetch('https://api.github.com/repos/StackSBix29/VeloClips/releases/latest');
+        if (!respuesta.ok) return; 
+        
+        const datos = await respuesta.json();
+        const ultimaVersion = datos.tag_name.replace('v', '');
+        
+        if (ultimaVersion !== versionActual) {
           const yes = await ask(
-            `¡Hay una nueva versión de VeloClips disponible (${update.version})!\n\n¿Quieres descargarla e instalarla ahora?`, 
-            { title: 'Actualización Disponible', kind: 'info', okLabel: 'Actualizar', cancelLabel: 'Más tarde' }
+            `¡Hay una nueva versión de VeloClips disponible (${ultimaVersion})!\n\n¿Quieres descargarla ahora?`, 
+            { title: 'Actualización Disponible', kind: 'info', okLabel: 'Descargar', cancelLabel: 'Más tarde' }
           );
           if (yes) {
-            await update.downloadAndInstall();
-            await invoke('graceful_restart');
+            await open(datos.html_url);
           }
         }
       } catch (error) {
@@ -157,6 +164,7 @@ export default function App() {
     };
 
     checkForUpdates();
+    // ----------------------------------------------------
 
     const checkDaVinci = async () => {
       try { setIsConnected(await invoke<boolean>('check_davinci_status')); } 
@@ -265,15 +273,23 @@ export default function App() {
     
     try {
       const audioResStr = await invoke<string>('analyze_audio', { videoPath: realPathToSend, maxClips });
+      console.log("Respuesta cruda de audio_analyzer:", audioResStr);
       let audioData = [];
       const startIndex = audioResStr.indexOf('[');
       if (startIndex !== -1) audioData = JSON.parse(audioResStr.substring(startIndex));
 
       let chatData: any[] = [];
       if (!localVideoPath) {
-          const chatResStr = await invoke<string>('analyze_chat_command', { videoPath: realPathToSend });
-          const chatStartIndex = chatResStr.indexOf('[');
-          if (chatStartIndex !== -1) chatData = JSON.parse(chatResStr.substring(chatStartIndex));
+          try {
+              const chatResStr = await invoke<string>('analyze_chat_command', { videoPath: realPathToSend });
+              let chatStartIndex = chatResStr.indexOf('[{');
+              if (chatStartIndex === -1) chatStartIndex = chatResStr.indexOf('[]');
+              if (chatStartIndex !== -1) chatData = JSON.parse(chatResStr.substring(chatStartIndex));
+          } catch (chatError) {
+              // Si el chat falla (ej. Error 429 de YouTube), lo ignoramos silenciosamente
+              // para no arruinar el análisis de audio que sí funcionó.
+              console.warn("No se pudo analizar el chat, omitiendo...", chatError);
+          }
       }
       let combinedData = [...audioData, ...chatData].sort((a, b) => a.seconds_raw - b.seconds_raw).slice(0, maxClips);
       
