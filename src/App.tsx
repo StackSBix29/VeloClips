@@ -252,9 +252,16 @@ export default function App() {
 
   const checkAndAnalyze = async () => {
     const realPathToSend = getActiveUrl();
-    if (!realPathToSend) return;
+    
+    // 1. Validar que exista un video antes de intentar llamar a los scripts
+    if (!realPathToSend) {
+        setStatusMsg("⚠️ Selecciona o importa un video primero para iniciar la IA.");
+        return;
+    }
 
-    setIsAnalyzing(true); setProgress(0); setProgressPhase("Analizando Picos...");
+    setIsAnalyzing(true); 
+    setProgress(0); 
+    setProgressPhase("Analizando Picos...");
     
     try {
       const audioResStr = await invoke<string>('analyze_audio', { videoPath: realPathToSend, maxClips });
@@ -269,15 +276,19 @@ export default function App() {
           if (chatStartIndex !== -1) chatData = JSON.parse(chatResStr.substring(chatStartIndex));
       }
       let combinedData = [...audioData, ...chatData].sort((a, b) => a.seconds_raw - b.seconds_raw).slice(0, maxClips);
+      
       setProgress(100); 
       setTimeout(() => {
           setHighlights(combinedData);
           setStatusMsg(`¡Análisis Completado! ${combinedData.length} clips detectados.`);
           setIsAnalyzing(false);
       }, 400);
+      
     } catch (e: any) { 
       setIsAnalyzing(false); 
-      setStatusMsg(`❌ Error en IA: ${e}`); // <-- El error ahora será visible
+      // 2. Imprimir cualquier error de Rust directamente en la barra de estado
+      setStatusMsg(`❌ Error crítico en IA: ${e}`); 
+      console.error(e);
     }
   };
 

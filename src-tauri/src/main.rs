@@ -91,15 +91,25 @@ fn select_local_video() -> Result<String, String> {
     }
 }
 
+// Función de ayuda inteligente para buscar los .exe de la IA
 fn run_local_exe(exe_name: &str, args: Vec<&str>) -> Result<String, String> {
-    let mut exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
-    exe_path.pop(); // Salimos de veloclips.exe
-    exe_path.push("bin"); // <-- AÑADIMOS ESTA LÍNEA PARA ENTRAR A LA CARPETA
-    exe_path.push(exe_name); // Apuntamos al .exe de la IA (ej. audio_analyzer.exe)
+    let mut base_path = std::env::current_exe().map_err(|e| e.to_string())?;
+    base_path.pop(); // Salimos de veloclips.exe
 
-    // Validamos que el archivo realmente esté ahí
+    // Opción 1: Buscar los scripts de Python en la misma carpeta raíz
+    let mut exe_path = base_path.clone();
+    exe_path.push(exe_name);
+
+    // Opción 2: Si no están sueltos, buscar en la subcarpeta "bin"
     if !exe_path.exists() {
-        return Err(format!("Falta el archivo: {}", exe_path.display()));
+        exe_path = base_path.clone();
+        exe_path.push("bin");
+        exe_path.push(exe_name);
+    }
+
+    // Si después de buscar en ambos lados no existe, lanzamos un error claro
+    if !exe_path.exists() {
+        return Err(format!("Falta el archivo: {}. No se encontró ni en la raíz ni en bin/", exe_name));
     }
 
     let mut cmd = std::process::Command::new(exe_path);
@@ -108,7 +118,7 @@ fn run_local_exe(exe_name: &str, args: Vec<&str>) -> Result<String, String> {
 
     let output = cmd.args(args)
         .output()
-        .map_err(|e| format!("Error ejecutando {}: {}", exe_name, e))?;
+        .map_err(|e| format!("Error del sistema ejecutando {}: {}", exe_name, e))?;
 
     Ok(String::from_utf8_lossy(&output.stdout).to_string())
 }
