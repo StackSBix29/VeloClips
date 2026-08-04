@@ -1,6 +1,6 @@
 {
   "productName": "VeloClips",
-  "version": "0.1.0",
+  "version": "0.1.7",
   "identifier": "com.VeloClips.app",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -41,6 +41,13 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
+    ],
+    "externalBin": [
+      "bin/video_scraper",
+      "bin/audio_analyzer",
+      "bin/chat_analyzer",
+      "bin/clip_downloader",
+      "bin/face_tracker"
     ]
   },
   "plugins": {

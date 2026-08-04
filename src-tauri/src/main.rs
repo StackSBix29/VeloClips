@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+// --- NUEVA IMPORTACIÓN PARA SIDECARS ---
+use tauri_plugin_shell::ShellExt;
 
 // --- IMPORTACIONES PARA OCULTAR LA CONSOLA EN WINDOWS ---
 #[cfg(target_os = "windows")]
@@ -79,21 +81,6 @@ fn ensure_lua_script_installed() {
     }
 }
 
-// --- EL GPS DE PYTHON ---
-fn get_python_bin() -> PathBuf {
-    let current_dir = std::env::current_dir().unwrap_or_default();
-    if current_dir.ends_with("src-tauri") {
-        current_dir
-            .parent()
-            .unwrap()
-            .join("venv")
-            .join("Scripts")
-            .join("python.exe")
-    } else {
-        current_dir.join("venv").join("Scripts").join("python.exe")
-    }
-}
-
 #[tauri::command]
 fn select_local_video() -> Result<String, String> {
     if let Some(path) = rfd::FileDialog::new()
@@ -106,106 +93,100 @@ fn select_local_video() -> Result<String, String> {
     }
 }
 
+// =========================================================================
+//  NUEVA IMPLEMENTACIÓN CON SIDECARS (REEMPLAZA EL USO DIRECTO DE PYTHON)
+// =========================================================================
+
 #[tauri::command]
-async fn analyze_audio(video_path: String, max_clips: i32) -> Result<String, String> {
+async fn analyze_audio(app: tauri::AppHandle, video_path: String, max_clips: i32) -> Result<String, String> {
     let safe_video_path = video_path.replace("\\", "/");
-    let current_dir = std::env::current_dir().unwrap_or_default();
-
-    let script_path = if current_dir.ends_with("src-tauri") {
-        current_dir
-            .parent()
-            .unwrap()
-            .join("ai_engine")
-            .join("audio_analyzer.py")
-    } else {
-        current_dir.join("ai_engine").join("audio_analyzer.py")
-    };
-
     let max_clips_str = max_clips.to_string();
-    let python_bin = get_python_bin();
 
-    let python_output = tauri::async_runtime::spawn_blocking(move || {
-        let mut cmd = std::process::Command::new(python_bin);
-        #[cfg(target_os = "windows")]
-        cmd.creation_flags(CREATE_NO_WINDOW);
+    let sidecar_command = app.shell().sidecar("bin/audio_analyzer")
+        .map_err(|e| format!("Error cargando el sidecar audio_analyzer: {}", e))?;
+    
+    let output = sidecar_command.args([&safe_video_path, &max_clips_str])
+        .output()
+        .await
+        .map_err(|e| format!("Error ejecutando sidecar: {}", e))?;
 
-        cmd.arg(script_path)
-            .arg(&safe_video_path)
-            .arg(max_clips_str)
-            .output()
-            .map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| format!("Error de hilo: {}", e))??;
-
-    Ok(String::from_utf8_lossy(&python_output.stdout).to_string())
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
 }
 
 #[tauri::command]
-async fn analyze_chat_command(video_path: String) -> Result<String, String> {
+async fn analyze_chat_command(app: tauri::AppHandle, video_path: String) -> Result<String, String> {
     let safe_video_path = video_path.replace("\\", "/");
-    let current_dir = std::env::current_dir().unwrap_or_default();
 
-    let script_path = if current_dir.ends_with("src-tauri") {
-        current_dir
-            .parent()
-            .unwrap()
-            .join("ai_engine")
-            .join("chat_analyzer.py")
-    } else {
-        current_dir.join("ai_engine").join("chat_analyzer.py")
-    };
+    let sidecar_command = app.shell().sidecar("bin/chat_analyzer")
+        .map_err(|e| format!("Error cargando el sidecar chat_analyzer: {}", e))?;
+    
+    let output = sidecar_command.args([&safe_video_path])
+        .output()
+        .await
+        .map_err(|e| format!("Error ejecutando sidecar: {}", e))?;
 
-    let python_bin = get_python_bin();
-
-    let python_output = tauri::async_runtime::spawn_blocking(move || {
-        let mut cmd = std::process::Command::new(python_bin);
-        #[cfg(target_os = "windows")]
-        cmd.creation_flags(CREATE_NO_WINDOW);
-
-        cmd.arg(script_path)
-            .arg(&safe_video_path)
-            .output()
-            .map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| format!("Error de hilo: {}", e))??;
-
-    Ok(String::from_utf8_lossy(&python_output.stdout).to_string())
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
 }
 
 #[tauri::command]
-async fn analyze_faces_command(video_path: String) -> Result<String, String> {
+async fn analyze_faces_command(app: tauri::AppHandle, video_path: String) -> Result<String, String> {
     let safe_video_path = video_path.replace("\\", "/");
-    let current_dir = std::env::current_dir().unwrap_or_default();
 
-    let script_path = if current_dir.ends_with("src-tauri") {
-        current_dir
-            .parent()
-            .unwrap()
-            .join("ai_engine")
-            .join("face_tracker.py")
-    } else {
-        current_dir.join("ai_engine").join("face_tracker.py")
+    let sidecar_command = app.shell().sidecar("bin/face_tracker")
+        .map_err(|e| format!("Error cargando el sidecar face_tracker: {}", e))?;
+    
+    let output = sidecar_command.args([&safe_video_path])
+        .output()
+        .await
+        .map_err(|e| format!("Error ejecutando sidecar: {}", e))?;
+
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}
+
+#[tauri::command]
+async fn get_recent_videos(app: tauri::AppHandle, name: String, platform: String) -> Result<Vec<VideoFeed>, String> {
+    let streamers = db::load_streamers();
+    let url = match streamers.get(&name) {
+        Some(streamer) => streamer.url.clone(),
+        None => return Err("No existe".into()),
     };
 
-    let python_bin = get_python_bin();
+    let sidecar_command = app.shell().sidecar("bin/video_scraper")
+        .map_err(|e| format!("Error cargando el sidecar video_scraper: {}", e))?;
+    
+    let output = sidecar_command.args([&url, &platform])
+        .output()
+        .await
+        .map_err(|e| format!("Error ejecutando sidecar: {}", e))?;
 
-    let python_output = tauri::async_runtime::spawn_blocking(move || {
-        let mut cmd = std::process::Command::new(python_bin);
-        #[cfg(target_os = "windows")]
-        cmd.creation_flags(CREATE_NO_WINDOW);
-
-        cmd.arg(script_path)
-            .arg(&safe_video_path)
-            .output()
-            .map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| format!("Error de hilo: {}", e))??;
-
-    Ok(String::from_utf8_lossy(&python_output.stdout).to_string())
+    let output_str = String::from_utf8_lossy(&output.stdout);
+    match serde_json::from_str::<Vec<VideoFeed>>(&output_str) {
+        Ok(v) => Ok(v),
+        Err(_) => Ok(vec![]), // Si la IA devuelve algo que no es JSON válido o hubo error.
+    }
 }
+
+#[tauri::command]
+async fn download_and_cut_clips(
+    app: tauri::AppHandle,
+    video_url: String,
+    highlights_json: String,
+    duration: i32,
+) -> Result<String, String> {
+    let duration_str = duration.to_string();
+    
+    let sidecar_command = app.shell().sidecar("bin/clip_downloader")
+        .map_err(|e| format!("Error cargando el sidecar clip_downloader: {}", e))?;
+    
+    let output = sidecar_command.args([&video_url, &highlights_json, &duration_str])
+        .output()
+        .await
+        .map_err(|e| format!("Error ejecutando sidecar: {}", e))?;
+
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}
+
+// =========================================================================
 
 // --- APLICAR LAYOUT A DAVINCI ---
 #[tauri::command]
@@ -272,42 +253,6 @@ fn delete_streamer(name: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn get_recent_videos(name: String, platform: String) -> Result<Vec<VideoFeed>, String> {
-    let streamers = db::load_streamers();
-    let url = match streamers.get(&name) {
-        Some(streamer) => streamer.url.clone(),
-        None => return Err("No existe".into()),
-    };
-
-    let current_dir = std::env::current_dir().unwrap_or_default();
-    let script_path = if current_dir.ends_with("src-tauri") {
-        current_dir
-            .parent()
-            .unwrap()
-            .join("ai_engine")
-            .join("video_scraper.py")
-    } else {
-        current_dir.join("ai_engine").join("video_scraper.py")
-    };
-
-    let mut cmd = std::process::Command::new(get_python_bin());
-    #[cfg(target_os = "windows")]
-    cmd.creation_flags(CREATE_NO_WINDOW);
-
-    let python_output = cmd.arg(script_path).arg(&url).arg(&platform).output();
-
-    if let Ok(output) = python_output {
-        let output_str = String::from_utf8_lossy(&output.stdout);
-        match serde_json::from_str::<Vec<VideoFeed>>(&output_str) {
-            Ok(v) => Ok(v),
-            Err(_) => Ok(vec![]),
-        }
-    } else {
-        Err("Fallo al ejecutar Python".into())
-    }
-}
-
-#[tauri::command]
 async fn check_davinci_status() -> bool {
     let result = tauri::async_runtime::spawn_blocking(|| {
         let mut cmd = std::process::Command::new("tasklist");
@@ -324,44 +269,6 @@ async fn check_davinci_status() -> bool {
     .await;
 
     result.unwrap_or(false)
-}
-
-#[tauri::command]
-async fn download_and_cut_clips(
-    video_url: String,
-    highlights_json: String,
-    duration: i32,
-) -> Result<String, String> {
-    let current_dir = std::env::current_dir().unwrap_or_default();
-    let script_path = if current_dir.ends_with("src-tauri") {
-        current_dir
-            .parent()
-            .unwrap()
-            .join("ai_engine")
-            .join("clip_downloader.py")
-    } else {
-        current_dir.join("ai_engine").join("clip_downloader.py")
-    };
-
-    let duration_str = duration.to_string();
-    let python_bin = get_python_bin();
-
-    let python_output = tauri::async_runtime::spawn_blocking(move || {
-        let mut cmd = std::process::Command::new(python_bin);
-        #[cfg(target_os = "windows")]
-        cmd.creation_flags(CREATE_NO_WINDOW);
-
-        cmd.arg(script_path)
-            .arg(&video_url)
-            .arg(&highlights_json)
-            .arg(duration_str)
-            .output()
-            .map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| format!("Error en el hilo de ejecución: {}", e))??;
-
-    Ok(String::from_utf8_lossy(&python_output.stdout).to_string())
 }
 
 #[tauri::command]
@@ -406,15 +313,12 @@ fn open_export_folder() -> Result<String, String> {
 
 #[tauri::command]
 async fn graceful_restart(app: tauri::AppHandle) {
-    // Matamos los procesos de DaVinci/Python para no dejar zombies
     let mut cmd = std::process::Command::new("taskkill");
     #[cfg(target_os = "windows")]
     cmd.creation_flags(CREATE_NO_WINDOW);
     
-    // Fuscript es vital cerrarlo
     let _ = cmd.args(["/F", "/IM", "fuscript.exe", "/T"]).output();
 
-    // Reiniciamos la aplicación de forma segura
     app.restart();
 }
 
@@ -427,7 +331,6 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
-        // --- INICIO DEL MODO FRANCOTIRADOR ---
         .on_window_event(|_window, event| match event {
             tauri::WindowEvent::CloseRequested { .. } => {
                 let mut cmd = std::process::Command::new("taskkill");
@@ -438,7 +341,6 @@ fn main() {
             }
             _ => {}
         })
-        // --- FIN DEL MODO FRANCOTIRADOR ---
         .invoke_handler(tauri::generate_handler![
             apply_layout_command,
             get_all_streamers,
