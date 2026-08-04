@@ -23,14 +23,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Instalar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Crear entorno virtual de Python (venv)
-        run: python -m venv ./src-tauri/venv
-
       - name: Instalar Rust
         uses: dtolnay/rust-toolchain@stable
 

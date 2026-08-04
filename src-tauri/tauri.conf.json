@@ -33,7 +33,6 @@
     "resources": [
       "ai_engine/**/*",
       "DaVinci_Integration/**/*",
-      "venv/**/*",
       "Templates/**/*"
     ],
     "icon": [
