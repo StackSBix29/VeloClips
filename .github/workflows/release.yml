@@ -1,6 +1,5 @@
 name: 'Publicar VeloClips'
 
-# Esto le dice a GitHub que solo compile cuando subas un "Tag" de versión (ej. v0.1.1)
 on:
   push:
     tags:
@@ -13,7 +12,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Aquí le decimos que use una máquina con Windows para compilar tu .exe
         platform: [windows-latest]
 
     runs-on: ${{ matrix.platform }}
@@ -30,14 +28,8 @@ jobs:
         with:
           python-version: '3.11'
 
-      # --- CORRECCIÓN: CREAR EL VENV DENTRO DE SRC-TAURI ---
-      - name: Crear entorno virtual de Python (venv) en src-tauri
-        run: |
-          cd src-tauri
-          python -m venv venv
-          # Si tienes requirements.txt, descomenta la línea de abajo:
-          # .\venv\Scripts\pip install -r requirements.txt
-      # ---------------------------------------------------
+      - name: Crear entorno virtual de Python (venv)
+        run: python -m venv ./src-tauri/venv
 
       - name: Instalar Rust
         uses: dtolnay/rust-toolchain@stable
