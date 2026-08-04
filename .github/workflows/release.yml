@@ -25,18 +25,19 @@ jobs:
         with:
           node-version: '20'
 
-      # --- NUEVOS PASOS PARA PYTHON ---
       - name: Instalar Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Crear entorno virtual de Python (venv)
+      # --- CORRECCIÓN: CREAR EL VENV DENTRO DE SRC-TAURI ---
+      - name: Crear entorno virtual de Python (venv) en src-tauri
         run: |
+          cd src-tauri
           python -m venv venv
-          # Si tienes un archivo requirements.txt con tus librerías de IA, quita el "#" de la siguiente línea:
+          # Si tienes requirements.txt, descomenta la línea de abajo:
           # .\venv\Scripts\pip install -r requirements.txt
-      # --------------------------------
+      # ---------------------------------------------------
 
       - name: Instalar Rust
         uses: dtolnay/rust-toolchain@stable
