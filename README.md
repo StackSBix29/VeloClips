@@ -10,6 +10,22 @@ VeloClips es una herramienta de automatización de edición de video diseñada p
 * **Interfaz Moderna:** UI construida con React y TypeScript, empaquetada en una aplicación de escritorio ligera gracias a Tauri.
 * **Instaladores Nativos:** Soporte para empaquetado en formatos MSI y NSIS listos para producción.
 
+##⚡ Funciones Nativas (Modo Autónomo)
+VeloClips es perfectamente funcional por sí sola. Si prefieres editar en Premiere, CapCut u otro programa, la aplicación te entregará los clips crudos listos para usar.
+* **Scraping Multiplataforma:** Descarga e importa VODs recientes directamente desde Twitch, Kick o YouTube.
+* **Análisis de Audio (IA):** Detecta picos vocales, gritos y momentos de alta intensidad para encontrar tus mejores jugadas.
+* **Análisis de Chat:** Escanea el chat de los streams en busca de "explosiones" de mensajes para identificar los momentos más virales.
+* **Detección Facial (Auto-Encuadre):** Utiliza MediaPipe para encontrar rostros en pantalla y calcular las coordenadas exactas y el nivel de zoom necesario para el formato vertical.
+* **Motor de Recorte Rápido:** Configura la duración de los clips (ej. 60 segundos) y el número máximo a extraer; la app procesará y exportará los videos crudos a tu carpeta local.
+* **Gestor de Proyectos:** Guarda el historial de tus videos procesados (archivos locales o URLs) junto con sus marcas de tiempo para que continúes editando en otro momento.
+
+##🚀 Integración con DaVinci Resolve (Modo Pro)
+Para los usuarios de DaVinci Resolve, VeloClips lleva la automatización al siguiente nivel mediante una conexión directa.
+* **Inyección Automática de Scripts:** La app instala de forma silenciosa un script de Lua (VeloClips_Injector.lua) en las carpetas de DaVinci para recibir instrucciones desde tu interfaz.
+* **Gestor de Plantillas (.drb):** Permite aplicar diseños preconfigurados directamente a la línea de tiempo de DaVinci, tales como:  Formatos Verticales (1 Cámara o Dúo).  Formato Horizontal estándar.  Fondos Inmersivos con efecto Blur.
+* **Aplicación de Auto-Encuadre:** Utiliza la información de la IA facial nativa para posicionar tu cámara perfectamente en el layout del proyecto sin que tengas que ajustar los recuadros a mano.
+* **Renderizado de Línea de Tiempo:** En lugar de solo entregarte videos sueltos, VeloClips acomoda los clips seleccionados directamente en el editor, listos para los toques finales.  
+
 ## 🛠️ Stack Tecnológico
 
 * **Frontend:** React, TypeScript, Vite
